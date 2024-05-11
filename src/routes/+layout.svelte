@@ -25,7 +25,7 @@
       </a>
       <button
         class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer flex"
-        ><i class="fa-solid fa-bars"></i></button
+        on:click={mostrarMensaje}><i class="fa-solid fa-bars"></i></button
       >
       <ul class="hidden sm:flex gap-5">
         <li class="hover:scale-105">
@@ -60,7 +60,7 @@
   </header>
 
   <slot />
-  
+
   <footer>
     <p class="text-center text-balance">
       Diseñado y desarrollado por la <span class="font-bold text-primary"

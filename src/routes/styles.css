@@ -37,3 +37,7 @@ body {
     rgba(255, 255, 255, 1) 95%
   );
 }
+
+.dashboard-box__playing-img {
+  border-radius: 12px !important;
+}
