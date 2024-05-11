@@ -1,54 +1,73 @@
 <script>
-	import Header from './Header.svelte';
-	import './styles.css';
-	import "../app.css";
+  import "./styles.css";
+
+  import logo from "$lib/images/cditi-radio-logo.webp";
+
+  // Función para mostrar el mensaje "Próximamente :D"
+  function mostrarMensaje() {
+    alert(
+      "La pagina está en desarrollo actualmente y estará disponible próximamente. ¡Gracias por tu paciencia! 😊"
+    );
+  }
 </script>
 
-<div class="app">
-	<Header />
+<div>
+  <header>
+    <nav
+      class="max-w-screen-xl m-auto w-auto py-4 px-5 flex justify-between items-center"
+    >
+      <a href="/">
+        <img
+          src={logo}
+          alt=""
+          class="h-14 hover:scale-105 transition-all hover:drop-shadow-lg"
+        />
+      </a>
+      <button
+        class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer flex"
+        ><i class="fa-solid fa-bars"></i></button
+      >
+      <ul class="hidden sm:flex gap-5">
+        <li class="hover:scale-105">
+          <a
+            class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline"
+            href="/">Inicio</a
+          >
+        </li>
+        <li class="hover:scale-105">
+          <a
+            class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline"
+            href="https://senarisaraldadosquebradas.blogspot.com/"
+            target="_blank">Blog</a
+          >
+        </li>
+        <li class="hover:scale-105">
+          <a
+            class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline"
+            href="/"
+            on:click={mostrarMensaje}>Podcasts</a
+          >
+        </li>
+        <li class="hover:scale-105">
+          <a
+            class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline"
+            href="/"
+            on:click={mostrarMensaje}>Contacto</a
+          >
+        </li>
+      </ul>
+    </nav>
+  </header>
 
-	<main>
-		<slot />
-	</main>
-
-	<footer>
-		<p class="text-center text-balance">Diseñado y desarrollado por la <span>Fabrica de Software</span> de <span>CDITI SENA Dosquebradas</span></p>
-	</footer>
+  <slot />
+  
+  <footer>
+    <p class="text-center text-balance">
+      Diseñado y desarrollado por la <span class="font-bold text-primary"
+        >Fabrica de Software</span
+      >
+      de
+      <span class="font-bold text-primary">CDITI SENA Dosquebradas</span>
+    </p>
+  </footer>
 </div>
-
-<style>
-	.app {
-		display: flex;
-		flex-direction: column;
-		min-height: 100vh;
-	}
-
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		width: 100%;
-		max-width: 64rem;
-		margin: 0 auto;
-		box-sizing: border-box;
-	}
-
-	footer {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 12px;
-	}
-
-	footer span {
-		font-weight: bold;
-	}
-
-	@media (min-width: 480px) {
-		footer {
-			padding: 12px 0;
-		}
-	}
-</style>
