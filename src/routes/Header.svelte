@@ -8,7 +8,7 @@
 </script>
 
 <header>
-  <nav class="max-w-7xl m-auto w-auto py-4 px-5 flex justify-between items-center">
+  <nav class="max-w-screen-xl m-auto w-auto py-4 px-5 flex justify-between items-center">
     <a href="/">
       <img src={logo} alt="" class="h-14 p-1 hover:p-0 transition-all hover:drop-shadow-lg">
     </a>

@@ -12,7 +12,7 @@
 	</main>
 
 	<footer>
-		<p>Diseñado y desarrolado por la <span>Fabrica de Software</span> de CDITI SENA Dosquebradas</p>
+		<p>Diseñado y desarrollado por la <span>Fabrica de Software</span> de <span>CDITI SENA Dosquebradas</span></p>
 	</footer>
 </div>
 
