@@ -14,7 +14,7 @@
     </a>
     <ul class="hidden sm:flex gap-5">
       <li><a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline" href="/">Inicio</a></li>
-      <li><a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline" href="https://senarisaraldadosquebradas.blogspot.com/">Blog</a></li>
+      <li><a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline" href="https://senarisaraldadosquebradas.blogspot.com/" target="_blank">Blog</a></li>
       <li><a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline" href="/" on:click={mostrarMensaje}>Podcasts</a></li>
       <li><a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary transition-all rounded-xl cursor-pointer no-underline" href="/" on:click={mostrarMensaje}>Contacto</a></li>
     </ul>
