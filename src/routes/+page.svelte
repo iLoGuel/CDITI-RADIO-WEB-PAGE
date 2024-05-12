@@ -64,7 +64,7 @@
     {#if loading}
       <!-- Esqueleto de carga -->
       {#each Array(8) as _, i}
-        <div class="curso rounded-xl border-2 shadow hover:shadow-lg transition-all animate-pulse">
+        <div class="curso rounded-xl border-2 shadow hover:shadow-lg bg-white transition-all animate-pulse">
           <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div>
           <div class="p-2">
             <div class="font-semibold line-clamp-2 bg-gray-200 h-6 w-4/5 mb-2"></div>
