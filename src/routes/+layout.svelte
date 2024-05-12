@@ -6,7 +6,7 @@
   // Función para mostrar el mensaje "Próximamente :D"
   function mostrarMensaje() {
     alert(
-      "¡Ups! Lo sentimos mucho. Esta función está en desarrollo actualmente y estará disponible próximamente. ¡Gracias por tu comprensión y paciencia! 😊"
+      "¡Oops! Estamos trabajando en esta función actualmente y estará disponible muy pronto. Agradecemos tu comprensión y paciencia mientras la preparamos para ti. ¡Gracias por visitarnos!"
     );
   }
 </script>
