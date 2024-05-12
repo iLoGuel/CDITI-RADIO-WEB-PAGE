@@ -62,8 +62,8 @@
   </header>
 
   <slot />
-  <footer class="bg-primary py-10 text-white">
-    <div class="max-w-7xl px-5 mx-auto flex gap-5 justify-center lg:justify-between items-center flex-wrap">
+  <footer class="bg-primary py-24 text-white">
+    <div class="max-w-7xl px-5 mx-auto flex gap-10 justify-center lg:justify-between items-center flex-wrap">
       <p class="text-sm">
         Servicio Nacional de Aprendizaje SENA-CENTRO DE DISEÑO E INNOVACIÓN
         TECNOLOGÍCA INDUSTRIAL-Regional Risaralda<br />
