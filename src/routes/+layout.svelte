@@ -62,7 +62,7 @@
   <slot />
 
   <footer>
-    <p class="text-center text-balance">
+    <p class="text-center text-balance my-5">
       Diseñado y desarrollado por la <span class="font-bold text-primary"
         >Fábrica de Software</span
       >
