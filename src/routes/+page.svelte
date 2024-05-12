@@ -75,7 +75,7 @@
     {:else}
       <!-- Renderizar los posts -->
       {#each posts as post}
-        <div class="curso rounded-xl border-2 shadow hover:shadow-lg transition-all">
+        <div class="curso rounded-xl border-2 shadow hover:shadow-lg bg:white transition-all">
           {#if post.content && post.extractFirstImage()}
             <img
               src={post.extractFirstImage()}
