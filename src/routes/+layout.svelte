@@ -64,7 +64,7 @@
   <footer>
     <p class="text-center text-balance">
       Diseñado y desarrollado por la <span class="font-bold text-primary"
-        >Fabrica de Software</span
+        >Fábrica de Software</span
       >
       de
       <span class="font-bold text-primary">CDITI SENA Dosquebradas</span>
