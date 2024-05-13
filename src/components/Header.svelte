@@ -22,16 +22,16 @@
     <div class={`transition-all menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
       <ul class={`transition menu__container ${isActive? 'active' : ''}`}>
         <li class="transition-all hover:scale-105 cursor-pointer">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/">Inicio</a>
+          <a class="transition-all hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/">Inicio</a>
         </li>
         <li class="transition-all hover:scale-105 cursor-pointer">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="https://senarisaraldadosquebradas.blogspot.com/" target="_blank">Blog</a>
+          <a class="transition-all hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="https://senarisaraldadosquebradas.blogspot.com/" target="_blank">Blog</a>
         </li>
         <li class="transition-all hover:scale-105 cursor-pointer">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Podcasts</a>
+          <a class="transition-all hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Podcasts</a>
         </li>
         <li class="transition-all hover:scale-105 cursor-pointer">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Contacto</a>
+          <a class="transition-all hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Contacto</a>
         </li>
       </ul>
     </div>
