@@ -19,7 +19,7 @@
       <img src={logo} alt="Logo de CDITI RADIO" class="h-14 hover:scale-105 transition-transform hover:drop-shadow-lg" />
     </a>
     <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl cursor-pointer flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
-    <div class={`transition transition-opacity menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
+    <div class={`transition-all menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
       <ul class={`transition menu__container ${isActive? 'active' : ''}`}>
         <li class="transition-transform hover:scale-105">
           <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl cursor-pointer no-underline" href="/">Inicio</a>
@@ -54,18 +54,12 @@
       top: 0;
       left: 0;
       opacity: 0;
-      transition-property: z-index;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 150ms;
     }
 
    .menu.active {
       backdrop-filter: brightness(0.5);
       z-index: 50;
       opacity: 1;
-      transition-property: z-index;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 150ms;
     }
 
    .menu__container {
