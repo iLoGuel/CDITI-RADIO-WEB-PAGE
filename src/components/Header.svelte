@@ -18,20 +18,20 @@
     <a href="/">
       <img src={logo} alt="Logo de CDITI RADIO" class="h-14 hover:scale-105 transition-transform hover:drop-shadow-lg" />
     </a>
-    <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl cursor-pointer flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
+    <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
     <div class={`transition-all menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
       <ul class={`transition menu__container ${isActive? 'active' : ''}`}>
-        <li class="transition-transform hover:scale-105">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl cursor-pointer no-underline" href="/">Inicio</a>
+        <li class="transition-transform hover:scale-105 cursor-pointer">
+          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/">Inicio</a>
         </li>
-        <li class="transition-transform hover:scale-105">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl cursor-pointer no-underline" href="https://senarisaraldadosquebradas.blogspot.com/" target="_blank">Blog</a>
+        <li class="transition-transform hover:scale-105 cursor-pointer">
+          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="https://senarisaraldadosquebradas.blogspot.com/" target="_blank">Blog</a>
         </li>
-        <li class="transition-transform hover:scale-105">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl cursor-pointer no-underline" href="/" on:click={mostrarMensaje}>Podcasts</a>
+        <li class="transition-transform hover:scale-105 cursor-pointer">
+          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Podcasts</a>
         </li>
-        <li class="transition-transform hover:scale-105">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl cursor-pointer no-underline" href="/" on:click={mostrarMensaje}>Contacto</a>
+        <li class="transition-transform hover:scale-105 cursor-pointer">
+          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Contacto</a>
         </li>
       </ul>
     </div>
