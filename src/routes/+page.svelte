@@ -41,6 +41,13 @@
   }
 
   onMount(fetchPosts);
+
+  // Función para formatear la fecha en español
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('es-ES', options);
+  }
 </script>
 
 <svelte:head>
@@ -75,7 +82,7 @@
     {:else}
       <!-- Renderizar los posts -->
       {#each posts as post}
-        <div class="curso rounded-xl shadow hover:scale-105 bg-gray-100 transition-all">
+        <div class="curso rounded-xl shadow hover:scale-105 bg-gray-100 transition-all flex flex-col">
           {#if post.content && post.extractFirstImage()}
             <img
               src={post.extractFirstImage()}
@@ -86,9 +93,12 @@
           {:else}
             <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div> <!-- Esqueleto de carga -->
           {/if}
-          <div class="p-2">
-            <h2 class="font-semibold line-clamp-2">{post.title}</h2>
-            <a href={post.url} target="_blank" class="text-blue-500">Leer más...</a>
+          <div class="p-3 flex flex-col justify-between gap-3 h-full ">
+            <div class="flex flex-col gap-2">
+              <span><i class="fa-regular fa-clock"></i> {formatDate(post.publishedDate)}</span>
+              <h2 class="font-semibold line-clamp-2">{post.title}</h2>
+            </div>
+            <a href={post.url} target="_blank" class=" bg-secondary shadow text-primary px-3 py-2 rounded-xl font-bold w-fit">Leer más...</a>
           </div>
         </div>
       {/each}
