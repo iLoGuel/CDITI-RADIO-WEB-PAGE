@@ -36,7 +36,7 @@
           <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Podcasts</a>
         </li>
         <li class="transition-transform hover:scale-105 cursor-pointer">
-          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/" on:click={mostrarMensaje}>Contacto</a>
+          <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/contacto">Contacto</a>
         </li>
       </ul>
     </div>

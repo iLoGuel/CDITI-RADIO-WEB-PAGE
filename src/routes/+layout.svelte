@@ -4,8 +4,6 @@
   import Footer from "../components/Footer.svelte";
 </script>
 
-<div>
-  <Header/>
-  <slot />
-  <Footer/>
-</div>
+<Header />
+<slot />
+<Footer />
