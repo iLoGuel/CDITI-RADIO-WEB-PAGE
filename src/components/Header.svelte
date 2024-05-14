@@ -24,7 +24,7 @@
     </a>
     <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <div class={`transition-all menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
+    <div class={`menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
       <ul class={`transition menu__container ${isActive? 'active' : ''}`}>
         <li class="transition-transform hover:scale-105 cursor-pointer">
           <a class="hover:shadow py-2 px-4 font-bold hover:bg-secondary hover:text-primary rounded-xl" href="/">Inicio</a>
@@ -54,21 +54,18 @@
       width: 100vw;
       height: 100vh;
       position: fixed;
-      backdrop-filter: none;
-      z-index: -50;
+      background-color: transparent;
       top: 0;
       left: 0;
-      opacity: 0;
+      z-index: -1;
     }
 
    .menu.active {
-      backdrop-filter: brightness(0.5);
-      z-index: 50;
-      opacity: 1;
+      background-color: rgba(0, 0, 0, 0.700);
+      z-index: 0;
     }
 
    .menu__container {
-      position: relative;
       transform: translateX(100%);
       display: flex;
       flex-direction: column;
@@ -78,7 +75,7 @@
       margin-left: auto;
       width: 60vw;
       height: 100vh;
-      z-index: 100;
+      border-radius: 12px 0 0 12px;
     }
 
    .menu__container.active {
