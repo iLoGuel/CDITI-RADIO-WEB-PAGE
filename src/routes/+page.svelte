@@ -66,7 +66,7 @@
     scrolling="no"
   ></iframe>
   <hr class="my-5" />
-  <h1 class="text-center text-xl font-bold my-5">Ultimas Publicaciones</h1>
+  <h1 class="text-center text-xl font-bold my-5">Últimas Publicaciones</h1>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {#if loading}
       <!-- Esqueleto de carga -->
