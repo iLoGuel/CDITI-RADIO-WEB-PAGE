@@ -94,11 +94,11 @@
             <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div> <!-- Esqueleto de carga -->
           {/if}
           <div class="p-3 flex flex-col justify-between gap-3 h-full ">
-            <div class="flex flex-col gap-2">
-              <span><i class="fa-regular fa-clock"></i> {formatDate(post.publishedDate)}</span>
+            <div class="flex flex-col gap-1">
+              <span class="text-gray-500 text-sm"><i class="fa-regular fa-clock"></i> {formatDate(post.publishedDate)}</span>
               <h2 class="font-semibold line-clamp-2">{post.title}</h2>
             </div>
-            <a href={post.url} target="_blank" class=" bg-secondary shadow text-primary px-3 py-2 rounded-xl font-bold w-fit">Leer más...</a>
+            <a href={post.url} target="_blank" class=" text-sm bg-secondary shadow text-primary px-3 py-2 rounded-xl w-fit">Leer más...</a>
           </div>
         </div>
       {/each}
