@@ -14,11 +14,16 @@
 </script>
 
 <header>
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <nav class="max-w-screen-xl m-auto w-auto py-4 px-5 flex justify-between items-center">
-    <a href="/">
-      <img src={logo} alt="Logo de CDITI RADIO" class="h-14 hover:scale-105 transition-transform hover:drop-shadow-lg" />
+    <a href="/" class="flex items-center gap-4">
+      <img src={logo} alt="Logo de CDITI RADIO" class="h-14 hover:scale-105 transition-all hover:drop-shadow-lg" />
+      <div class="hover:drop-shadow-lg transition-all bg-white hover:scale-105 px-3 py-2  font-bold rounded-xl animate-pulse">
+        🔴En vivo
+      </div>
     </a>
     <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div class={`transition-all menu ${isActive? 'active' : ''}`} on:click={toggleMenu}>
       <ul class={`transition menu__container ${isActive? 'active' : ''}`}>
         <li class="transition-transform hover:scale-105 cursor-pointer">

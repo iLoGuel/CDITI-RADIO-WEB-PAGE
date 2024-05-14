@@ -60,11 +60,11 @@
   ></iframe>
   <hr class="my-5" />
   <h1 class="text-center text-xl font-bold my-5">Ultimas Publicaciones</h1>
-  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {#if loading}
       <!-- Esqueleto de carga -->
       {#each Array(8) as _, i}
-        <div class="curso rounded-xl border-2 shadow hover:shadow-lg bg-white transition-all animate-pulse">
+        <div class="curso rounded-xl hover:scale-105 shadow bg-gray-100 transition-all animate-pulse">
           <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div>
           <div class="p-2">
             <div class="font-semibold line-clamp-2 bg-gray-200 h-6 w-4/5 mb-2"></div>
@@ -75,7 +75,7 @@
     {:else}
       <!-- Renderizar los posts -->
       {#each posts as post}
-        <div class="curso rounded-xl border-2 shadow hover:shadow-lg bg-white transition-all">
+        <div class="curso rounded-xl shadow hover:scale-105 bg-gray-100 transition-all">
           {#if post.content && post.extractFirstImage()}
             <img
               src={post.extractFirstImage()}

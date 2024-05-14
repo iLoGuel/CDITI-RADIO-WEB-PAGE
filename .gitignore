@@ -1,0 +1,22 @@
+# Node.js dependencies
+node_modules/
+
+# SvelteKit build output
+.svelte-kit/
+
+# Log files
+*.log
+
+# Debug files
+debug.log
+
+# OS-specific files
+.DS_Store
+thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Other files to ignore
+coverage/
