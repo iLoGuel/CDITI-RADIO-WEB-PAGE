@@ -72,10 +72,10 @@
       <!-- Esqueleto de carga -->
       {#each Array(8) as _, i}
         <div class="curso rounded-xl hover:scale-105 shadow bg-gray-100 transition-all animate-pulse">
-          <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div>
+          <div class="w-full h-48 bg-gray-200 rounded-t-xl animate-pulse"></div>
           <div class="p-2">
-            <div class="font-semibold line-clamp-2 bg-gray-200 h-6 w-4/5 mb-2"></div>
-            <div class="bg-gray-200 h-4 w-2/3"></div>
+            <div class="font-semibold line-clamp-2 bg-gray-200 h-6 w-4/5 mb-2 animate-pulse"></div>
+            <div class="bg-gray-200 h-4 w-2/3 animate-pulse"></div>
           </div>
         </div>
       {/each}
@@ -91,14 +91,14 @@
               on:error={post.handleImageError}
             />
           {:else}
-            <div class="w-full h-48 bg-gray-200 rounded-t-xl"></div> <!-- Esqueleto de carga -->
+            <div class="w-full h-48 bg-gray-200 rounded-t-xl animate-pulse"></div> <!-- Esqueleto de carga -->
           {/if}
           <div class="p-3 flex flex-col justify-between gap-3 h-full ">
             <div class="flex flex-col gap-1">
               <span class="text-gray-500 text-sm"><i class="fa-regular fa-clock"></i> {formatDate(post.publishedDate)}</span>
               <h2 class="font-semibold line-clamp-2">{post.title}</h2>
             </div>
-            <a href={post.url} target="_blank" class=" text-sm bg-secondary shadow text-primary px-3 py-2 rounded-xl w-fit">Leer más...</a>
+            <a href={post.url} target="_blank"class=" text-sm bg-secondary shadow text-primary px-3 py-2 rounded-xl w-fit">Leer más...</a>
           </div>
         </div>
       {/each}
