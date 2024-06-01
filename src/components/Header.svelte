@@ -18,9 +18,9 @@
   <nav class="max-w-screen-xl m-auto w-auto py-4 px-5 flex justify-between items-center">
     <a href="/" class="flex items-center gap-4">
       <img src={logo} alt="Logo de CDITI RADIO" class="h-14 hover:scale-105 transition-all hover:drop-shadow-lg" />
-      <div class="hover:drop-shadow-lg transition-all bg-white hover:scale-105 px-3 py-2  font-bold rounded-xl animate-pulse">
+      <!-- <div class="hover:drop-shadow-lg transition-all bg-white hover:scale-105 px-3 py-2  font-bold rounded-xl animate-pulse">
         🔴En vivo
-      </div>
+      </div> -->
     </a>
     <button class="sm:hidden hover:scale-105 hover:shadow p-4 font-bold hover:bg-secondary hover:text-primary transition-transform rounded-xl flex" on:click={toggleMenu}><i class="fa-solid fa-bars"></i></button>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
