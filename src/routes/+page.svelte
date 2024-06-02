@@ -5,6 +5,9 @@
   import Post from "../components/Post.svelte";
 
   let playing = false;
+  /**
+   * @type {HTMLAudioElement}
+   */
   let player;
 
   onMount(() => {
