@@ -46,7 +46,7 @@
   <meta name="description" content="CDITI RADIO" />
 </svelte:head>
 
-<main class="max-w-8xl px-4 py-5 mx-auto">
+<main class="max-w-7xl px-4 py-5 mx-auto">
   <div
     class="w-full h-80 bg-white flex items-end rounded-xl overflow-hidden shadow bg-cover"
     style="background-image: url({playerBanner});"
