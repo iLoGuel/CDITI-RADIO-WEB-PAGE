@@ -51,7 +51,7 @@
 </script>
 
 <h1 class="text-center text-xl font-bold my-5">Últimas Publicaciones</h1>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
   {#if loading}
     <!-- Esqueleto de carga -->
     {#each Array(8) as _, i}
