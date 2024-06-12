@@ -5,7 +5,7 @@
 <a href="https://wa.me/+573233178235" target="_blank" class="ws-btn">
         <i class="fa-brands fa-whatsapp text-4xl text-white"></i>
         <div class="wsqr-btn">
-            <h1 class="text-sm text-center font-bold mb-3">Linea Whatsapp</h1>
+            <h1 class="text-sm text-center font-bold mb-3">Línea WhatsApp</h1>
             <img class="w-32" src="{whatsappQr}" alt="">
         </div>
 </a>
