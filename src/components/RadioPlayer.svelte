@@ -56,6 +56,11 @@
     volume = parseFloat(target.value);
     audio.volume = volume;
     isMuted = volume === 0;
+    
+    // Actualizar la variable CSS para la visualización del volumen
+    if (target) {
+      target.style.setProperty('--volume-percentage', `${volume * 100}%`);
+    }
   }
   
   function handleVolumeStart(): void {
@@ -64,9 +69,6 @@
   
   function handleVolumeEnd(): void {
     dragging = false;
-    setTimeout(() => {
-      if (!dragging) showVolumeSlider = false;
-    }, 2000);
   }
   
   // Funciones para soporte táctil
@@ -88,18 +90,6 @@
         volume = Math.min(Math.max(percentage, 0), 1);
         audio.volume = volume;
         isMuted = volume === 0;
-      }
-    }
-  }
-  
-  // Función para manejar cambio de volumen desde input
-  function handleInputChange(event: Event) {
-    if (event && event.target) {
-      const target = event.target as HTMLInputElement;
-      if (target && target.value) {
-        volume = parseFloat(target.value);
-        if (volume > 0) isMuted = false;
-        audio.volume = volume;
       }
     }
   }
@@ -130,6 +120,14 @@
     
     if (audio) {
       audio.volume = volume;
+      
+      // Inicializar la variable CSS para la visualización del volumen
+      setTimeout(() => {
+        const volumeSlider = document.querySelector('input[type=range]') as HTMLInputElement;
+        if (volumeSlider) {
+          volumeSlider.style.setProperty('--volume-percentage', `${volume * 100}%`);
+        }
+      }, 0);
       
       // Manejadores de eventos para el elemento audio
       audio.addEventListener('playing', () => {
@@ -175,37 +173,45 @@
         <span class="text-sm font-semibold text-secondary">{stationName} - En Vivo</span>
       </div>
       
-      <div class="volume-control relative flex items-center gap-2">
-        <button 
-          class="hover:text-primary p-1 transition-colors text-gray-500"
-          on:mouseenter={() => showVolumeSlider = true}
-        >
-          {#if isMuted || volume === 0}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            </svg>
-          {:else if volume < 0.5}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072" />
-            </svg>
-          {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.07 9.93a8 8 0 010 4.14" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.07 7.93a12 12 0 010 8.14" />
-            </svg>
-          {/if}
-        </button>
+      <!-- Botón de volumen y silencio -->
+      <button 
+        class="hover:text-primary p-1 transition-colors text-gray-500 ml-auto mr-2"
+        on:click={toggleMute}
+      >
+        {#if isMuted || volume === 0}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        {:else if volume < 0.5}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072" />
+          </svg>
+        {:else}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.07 9.93a8 8 0 010 4.14" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.07 7.93a12 12 0 010 8.14" />
+          </svg>
+        {/if}
+      </button>
+    </div>
+    
+    <div class="player-content p-4">
+      <div class="flex flex-col">
+        <div class="song-info mb-3">
+          <h3 class="text-base font-medium text-gray-800">{currentSong}</h3>
+          <p class="text-xs text-gray-500">{currentArtist}</p>
+        </div>
         
-        {#if showVolumeSlider}
-        <div 
-          class="volume-slider absolute bg-white shadow-lg rounded-lg p-3 w-32 z-50"
-          style="bottom: -60px; right: -10px;"
-          on:mouseenter={() => showVolumeSlider = true}
-          on:mouseleave={handleVolumeEnd}
-        >
+        <!-- Control de volumen estático -->
+        <div class="volume-control mb-4 w-full px-1">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <span class="volume-min">Min</span>
+            <span class="volume-label">{Math.round(volume * 100)}%</span>
+            <span class="volume-max">Max</span>
+          </div>
           <input 
             type="range" 
             min="0" 
@@ -218,41 +224,34 @@
             on:touchstart={handleTouchStart}
             on:touchmove={handleTouchMove}
             on:touchend={handleTouchEnd}
-            class="w-full accent-primary"
+            class="w-full slider-progress"
+            style="--volume-percentage: {volume * 100}%"
           />
         </div>
-        {/if}
-      </div>
-    </div>
-    
-    <div class="player-content p-4">
-      <div class="flex items-center justify-between">
-        <div class="song-info">
-          <h3 class="text-base font-medium text-gray-800">{currentSong}</h3>
-          <p class="text-xs text-gray-500">{currentArtist}</p>
-        </div>
         
-        <button 
-          on:click={togglePlay}
-          class="play-button bg-primary text-white h-12 w-12 rounded-full flex items-center justify-center shadow-md hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
-          disabled={isLoading}
-        >
-          {#if isLoading}
-            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          {:else if isPlaying}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          {/if}
-        </button>
+        <div class="flex justify-center">
+          <button 
+            on:click={togglePlay}
+            class="play-button bg-primary text-white h-12 w-12 rounded-full flex items-center justify-center shadow-md hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+            disabled={isLoading}
+          >
+            {#if isLoading}
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            {:else if isPlaying}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            {/if}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -314,6 +313,15 @@
     z-index: 20;
   }
   
+  .volume-min, .volume-max {
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+  
+  .volume-label {
+    font-weight: 500;
+  }
+  
   .volume-slider {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
@@ -326,6 +334,11 @@
     touch-action: manipulation;
   }
   
+  /* Estilo para la barra de progreso */
+  input[type=range].slider-progress {
+    background: linear-gradient(to right, var(--color-primary, #39a900) 0%, var(--color-primary, #39a900) var(--volume-percentage), #e5e7eb var(--volume-percentage), #e5e7eb 100%);
+  }
+  
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
@@ -333,6 +346,7 @@
     border-radius: 50%;
     background: var(--color-primary, #39a900);
     cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   
   input[type=range]::-moz-range-thumb {
@@ -342,6 +356,7 @@
     background: var(--color-primary, #39a900);
     cursor: pointer;
     border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   
   /* Ajustes para móviles */
