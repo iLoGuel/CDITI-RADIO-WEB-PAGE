@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
   
   // URL del stream de audio (reemplazar con la URL real de tu estación)
   export let streamUrl: string = "https://streaming.radio.co/example-station";
@@ -51,7 +52,7 @@
       isLoading = false;
       
       // Si hay un error de red, intentar reconectar
-      if (navigator.onLine === false || error.name === 'NotSupportedError' || error.message.includes('network')) {
+      if (browser && navigator.onLine === false || error.name === 'NotSupportedError' || error.message.includes('network')) {
         startReconnection();
       }
     });
@@ -164,12 +165,12 @@
   }
   
   function handleNetworkChange(): void {
-    if (navigator.onLine) {
+    if (browser && navigator.onLine) {
       // Volvimos a tener conexión, intentar reconectar
       if (connectionStatus === 'disconnected') {
         startReconnection();
       }
-    } else {
+    } else if (browser && !navigator.onLine) {
       // Perdimos la conexión
       connectionStatus = 'disconnected';
       if (isPlaying) {
@@ -200,7 +201,7 @@
   
   onMount(() => {
     // Detectar si es un dispositivo móvil
-    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    isMobile = browser && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (audio) {
       audio.volume = volume;
@@ -230,7 +231,7 @@
       
       audio.addEventListener('error', (e) => {
         console.error("Error de audio:", e);
-        if (navigator.onLine !== false) { // Solo si no sabemos ya que estamos desconectados
+        if (browser && navigator.onLine !== false) { // Solo si no sabemos ya que estamos desconectados
           startReconnection();
         }
       });
@@ -240,9 +241,11 @@
         startReconnection();
       });
       
-      // Eventos de red
-      window.addEventListener('online', handleNetworkChange);
-      window.addEventListener('offline', handleNetworkChange);
+      // Eventos de red - solo en el navegador
+      if (browser) {
+        window.addEventListener('online', handleNetworkChange);
+        window.addEventListener('offline', handleNetworkChange);
+      }
       
       // Iniciar la simulación de información de canciones
       updateSongInfo();
@@ -254,9 +257,11 @@
     if (songUpdateTimer) clearTimeout(songUpdateTimer);
     if (reconnectTimer) clearTimeout(reconnectTimer);
     
-    // Remover listeners de red
-    window.removeEventListener('online', handleNetworkChange);
-    window.removeEventListener('offline', handleNetworkChange);
+    // Remover listeners de red - solo en el navegador
+    if (browser) {
+      window.removeEventListener('online', handleNetworkChange);
+      window.removeEventListener('offline', handleNetworkChange);
+    }
     
     // Detener audio y limpiar eventos
     if (audio) {
