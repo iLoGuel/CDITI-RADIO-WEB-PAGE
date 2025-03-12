@@ -56,7 +56,7 @@
     <!-- Esqueleto de carga -->
     {#each Array(8) as _, i}
       <div
-        class="curso rounded-xl hover:scale-105 shadow bg-gray-100 transition-all animate-pulse"
+        class="curso rounded-xl hover:scale-105 shadow-sm bg-gray-100 transition-all animate-pulse"
       >
         <div class="w-full h-48 bg-gray-200 rounded-t-xl animate-pulse"></div>
         <div class="p-2">
@@ -71,7 +71,7 @@
     <!-- Renderizar los posts -->
     {#each posts as post}
       <div
-        class="curso rounded-xl shadow hover:scale-105 bg-gray-100 transition-all flex flex-col"
+        class="curso rounded-xl shadow-sm hover:scale-105 bg-gray-100 transition-all flex flex-col"
       >
         {#if post.content && post.extractFirstImage()}
           <img
@@ -95,7 +95,7 @@
           <a
             href={post.url}
             target="_blank"
-            class=" text-sm bg-secondary shadow text-primary px-3 py-2 rounded-xl w-fit"
+            class=" text-sm bg-secondary shadow-sm text-primary px-3 py-2 rounded-xl w-fit"
             >Leer más...</a
           >
         </div>

@@ -48,11 +48,11 @@
 
 <main class="max-w-7xl px-4 py-5 mx-auto">
   <div
-    class="w-full h-80 bg-white flex items-end rounded-xl overflow-hidden shadow bg-cover"
+    class="w-full h-80 bg-white flex items-end rounded-xl overflow-hidden shadow-sm bg-cover"
     style="background-image: url({playerBanner});"
   >
     <div
-      class="w-full backdrop-blur-sm backdrop-brightness-50 flex px-6 py-4 text-white text-2xl justify-between flex-wrap gap-6"
+      class="w-full backdrop-blur-xs backdrop-brightness-50 flex px-6 py-4 text-white text-2xl justify-between flex-wrap gap-6"
     >
       <button on:click={playRadio} class="transition-all hover:scale-105">
         <!-- Utiliza la clase `fa-solid` para mostrar el icono apropiado basado en la variable `playing` -->
