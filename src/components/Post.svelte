@@ -95,7 +95,7 @@
           <a
             href={post.url}
             target="_blank"
-            class=" text-sm bg-secondary shadow-sm text-primary px-3 py-2 rounded-xl w-fit"
+            class="text-sm bg-secondary shadow-sm text-primary px-3 py-2 rounded-xl w-fit"
             >Leer más...</a
           >
         </div>
