@@ -41,21 +41,23 @@
 <header class={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 shadow-sm backdrop-blur-sm border-b border-gray-100' : 'bg-white'}`}>
   <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
     <nav class="flex justify-between items-center h-16 md:h-20">
-      <!-- Logo -->
-      <a href="/" class="flex items-center gap-3 focus-visible:outline-primary" aria-label="CDITI RADIO - Página principal">
-        <img 
-          src={logo} 
-          alt="Logo de CDITI RADIO" 
-          class="h-12 md:h-14 transition-transform duration-300 hover:scale-105"
-        />
-        <div class={`hidden sm:flex items-center text-white font-bold px-3 py-1 bg-primary rounded-lg text-sm ${scrolled ? '' : 'animate-pulse'}`}>
-          <span class="relative flex h-3 w-3 me-2">
+      <!-- Logo y En Vivo -->
+      <div class="flex items-center">
+        <a href="/" class="flex items-center gap-3 focus-visible:outline-primary" aria-label="CDITI RADIO - Página principal">
+          <img 
+            src={logo} 
+            alt="Logo de CDITI RADIO" 
+            class="h-12 md:h-14 transition-transform duration-300 hover:scale-105"
+          />
+        </a>
+        <div class="flex items-center ml-3 bg-primary/10 px-2.5 py-1 rounded-full">
+          <div class="relative flex h-2 w-2 mr-2">
             <span class="absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75 animate-ping"></span>
-            <span class="relative inline-flex rounded-full h-3 w-3 bg-tertiary"></span>
-          </span>
-          En vivo
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+          </div>
+          <span class="text-xs font-medium text-primary">En vivo</span>
         </div>
-      </a>
+      </div>
       
       <!-- Menú de navegación para pantallas medianas y grandes -->
       <ul class="hidden md:flex items-center space-x-4">
@@ -66,6 +68,14 @@
             aria-current="page"
           >
             Inicio
+          </a>
+        </li>
+        <li>
+          <a 
+            href="/radio" 
+            class="flex items-center px-4 py-2 text-gray-700 font-medium rounded-xl transition-all hover:text-primary hover:bg-gray-50 hover:scale-105 focus-visible:outline-primary"
+          >
+            Radio
           </a>
         </li>
         <li>
@@ -156,6 +166,13 @@
         on:click={toggleMenu}
       >
         Inicio
+      </a>
+      <a 
+        href="/radio" 
+        class="block px-4 py-3 text-base font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
+        on:click={toggleMenu}
+      >
+        Radio
       </a>
       <a 
         href="https://senarisaraldadosquebradas.blogspot.com/" 
