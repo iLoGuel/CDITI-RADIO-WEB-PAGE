@@ -3,6 +3,8 @@
   import { onMount } from "svelte";
   import { API_URL, PLACEHOLDER_IMAGE, ERROR_IMAGE } from "$lib/js/config";
 
+  export let maxPosts: number = 3; // Número máximo de posts a mostrar, por defecto 3
+
   interface PostData {
     title: string;
     url: string;
@@ -30,6 +32,24 @@
       return imgElement ? imgElement.src : PLACEHOLDER_IMAGE;
     }
 
+    extractSummary(maxLength: number = 120): string {
+      // Extraer texto del contenido HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(this.content, "text/html");
+      // Eliminar scripts y estilos
+      const scripts = doc.querySelectorAll('script, style');
+      scripts.forEach(script => script.remove());
+      // Obtener texto
+      let text = doc.body.textContent || '';
+      // Limpiar espacios extras
+      text = text.replace(/\s+/g, ' ').trim();
+      // Truncar si excede la longitud máxima
+      if (text.length > maxLength) {
+        text = text.substring(0, maxLength) + '...';
+      }
+      return text;
+    }
+
     static handleImageError(event: Event): void {
       const target = event.target as HTMLImageElement;
       target.src = ERROR_IMAGE;
@@ -43,7 +63,7 @@
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
-      posts = data.items.map((item: PostData) => new Post(item));
+      posts = data.items.map((item: PostData) => new Post(item)).slice(0, maxPosts);
     } catch (error) {
       console.error("Error al obtener los posts:", error);
     } finally {
@@ -70,7 +90,7 @@
 <div class="mb-10">
   <div class="text-center mb-8">
     <h2 class="text-2xl md:text-3xl font-bold text-secondary mb-3">Últimas Publicaciones</h2>
-    <p class="text-gray-600 max-w-2xl mx-auto">
+    <p class="text-secondary/80 max-w-2xl mx-auto">
       Mantente informado sobre las últimas noticias y eventos del Centro de Diseño e Innovación Tecnológica Industrial
     </p>
   </div>
@@ -78,16 +98,16 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {#if loading}
       <!-- Esqueleto de carga -->
-      {#each Array(6) as _, i}
+      {#each Array(maxPosts) as _, i}
         <div
-          class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all"
+          class="bg-white rounded-xl shadow-md border border-tertiary/10 overflow-hidden hover:shadow-lg transition-all h-full"
         >
-          <div class="w-full h-48 bg-gray-200 animate-pulse"></div>
+          <div class="w-full h-48 bg-secondary/5 animate-pulse"></div>
           <div class="p-5">
-            <div class="h-4 w-1/3 bg-gray-200 rounded mb-3 animate-pulse"></div>
-            <div class="h-6 w-4/5 bg-gray-200 rounded mb-4 animate-pulse"></div>
-            <div class="h-4 w-2/3 bg-gray-200 rounded mb-5 animate-pulse"></div>
-            <div class="h-9 w-28 bg-gray-200 rounded animate-pulse"></div>
+            <div class="h-4 w-1/3 bg-secondary/10 rounded mb-3 animate-pulse"></div>
+            <div class="h-6 w-4/5 bg-secondary/10 rounded mb-4 animate-pulse"></div>
+            <div class="h-4 w-2/3 bg-secondary/10 rounded mb-5 animate-pulse"></div>
+            <div class="h-9 w-28 bg-tertiary/10 rounded animate-pulse"></div>
           </div>
         </div>
       {/each}
@@ -95,10 +115,10 @@
       <!-- Renderizar los posts -->
       {#each posts as post}
         <div
-          class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all flex flex-col h-full"
+          class="bg-white rounded-xl shadow-md border border-tertiary/10 overflow-hidden hover:shadow-lg transition-all flex flex-col h-full"
         >
           {#if post.content && post.extractFirstImage()}
-            <div class="relative w-full h-48 overflow-hidden">
+            <div class="relative w-full h-48 overflow-hidden bg-secondary/5">
               <img
                 src={post.extractFirstImage()}
                 alt={post.title}
@@ -107,7 +127,7 @@
               />
             </div>
           {:else}
-            <div class="w-full h-48 bg-primary/5 flex items-center justify-center">
+            <div class="w-full h-48 bg-secondary/5 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-primary/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -118,12 +138,17 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span class="text-sm text-gray-500">{formatDate(post.publishedDate)}</span>
+              <span class="text-sm text-secondary/60">{formatDate(post.publishedDate)}</span>
             </div>
             
             <h3 class="font-semibold text-secondary mb-3 line-clamp-2 text-lg">{post.title}</h3>
             
-            <div class="mt-auto pt-4">
+            <!-- Resumen del post -->
+            <p class="text-sm text-secondary/70 mb-4 line-clamp-3">
+              {post.extractSummary(120)}
+            </p>
+            
+            <div class="mt-auto pt-2">
               <a
                 href={post.url}
                 target="_blank"
@@ -142,3 +167,20 @@
     {/if}
   </div>
 </div>
+
+<style>
+  /* Para que funcione el line-clamp en Svelte */
+  :global(.line-clamp-2) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+  }
+  
+  :global(.line-clamp-3) {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+  }
+</style>
