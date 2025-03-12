@@ -8,7 +8,7 @@
   
   let audio: HTMLAudioElement;
   let isPlaying: boolean = false;
-  let volume: number = 0.8;
+  let volume: number = 1.0; // Cambiado a 1.0 (100%)
   let isMuted: boolean = false;
   let previousVolume: number = volume;
   let dragging: boolean = false;
@@ -20,6 +20,9 @@
   // Información de la canción (puede venir de una API)
   let currentSong: string = "Cargando información...";
   let currentArtist: string = "";
+  
+  // Para compatibilidad móvil
+  let isMobile: boolean = false;
   
   // Timer para simular cambios de canción (reemplazar con datos reales)
   let songUpdateTimer: ReturnType<typeof setTimeout>;
@@ -66,6 +69,41 @@
     }, 2000);
   }
   
+  // Funciones para soporte táctil
+  function handleTouchStart(): void {
+    dragging = true;
+  }
+  
+  function handleTouchEnd(): void {
+    handleVolumeEnd();
+  }
+  
+  function handleTouchMove(e: TouchEvent): void {
+    if (dragging && e.touches && e.touches[0]) {
+      const rangeInput = e.target as HTMLInputElement;
+      if (rangeInput) {
+        const rect = rangeInput.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        const percentage = touchX / rect.width;
+        volume = Math.min(Math.max(percentage, 0), 1);
+        audio.volume = volume;
+        isMuted = volume === 0;
+      }
+    }
+  }
+  
+  // Función para manejar cambio de volumen desde input
+  function handleInputChange(event: Event) {
+    if (event && event.target) {
+      const target = event.target as HTMLInputElement;
+      if (target && target.value) {
+        volume = parseFloat(target.value);
+        if (volume > 0) isMuted = false;
+        audio.volume = volume;
+      }
+    }
+  }
+  
   // Función para obtener información de la canción actual (simulada)
   function updateSongInfo(): void {
     // Aquí podrías hacer una llamada API para obtener la información real
@@ -87,6 +125,9 @@
   }
   
   onMount(() => {
+    // Detectar si es un dispositivo móvil
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     if (audio) {
       audio.volume = volume;
       
@@ -124,7 +165,7 @@
 <div class={`radio-player ${showMiniPlayer ? 'radio-player-mini' : 'radio-player-full'}`}>
   {#if !showMiniPlayer}
   <!-- Reproductor completo -->
-  <div class="player-container bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+  <div class="player-container bg-white rounded-xl shadow-md border border-gray-100">
     <div class="player-header bg-primary/5 px-4 py-3 flex items-center justify-between border-b border-gray-100">
       <div class="flex items-center">
         <div class="relative flex h-3 w-3 mr-2">
@@ -134,9 +175,9 @@
         <span class="text-sm font-semibold text-secondary">{stationName} - En Vivo</span>
       </div>
       
-      <div class="flex items-center gap-2">
+      <div class="volume-control relative flex items-center gap-2">
         <button 
-          class="hover:text-primary p-1 transition-colors text-gray-500 relative"
+          class="hover:text-primary p-1 transition-colors text-gray-500"
           on:mouseenter={() => showVolumeSlider = true}
         >
           {#if isMuted || volume === 0}
@@ -156,26 +197,31 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.07 7.93a12 12 0 010 8.14" />
             </svg>
           {/if}
-          
-          {#if showVolumeSlider}
-          <div 
-            class="volume-slider absolute -left-12 -bottom-14 bg-white shadow-lg rounded-lg p-3 w-32 z-10"
-            on:mouseleave={handleVolumeEnd}
-          >
-            <input 
-              type="range" 
-              min="0" 
-              max="1" 
-              step="0.01" 
-              bind:value={volume}
-              on:input={handleVolumeChange}
-              on:mousedown={handleVolumeStart}
-              on:mouseup={handleVolumeEnd}
-              class="w-full accent-primary"
-            />
-          </div>
-          {/if}
         </button>
+        
+        {#if showVolumeSlider}
+        <div 
+          class="volume-slider absolute bg-white shadow-lg rounded-lg p-3 w-32 z-50"
+          style="bottom: -60px; right: -10px;"
+          on:mouseenter={() => showVolumeSlider = true}
+          on:mouseleave={handleVolumeEnd}
+        >
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01" 
+            bind:value={volume}
+            on:input={handleVolumeChange}
+            on:mousedown={handleVolumeStart}
+            on:mouseup={handleVolumeEnd}
+            on:touchstart={handleTouchStart}
+            on:touchmove={handleTouchMove}
+            on:touchend={handleTouchEnd}
+            class="w-full accent-primary"
+          />
+        </div>
+        {/if}
       </div>
     </div>
     
@@ -256,10 +302,20 @@
   .radio-player-full {
     width: 100%;
     max-width: 400px;
+    position: relative;
   }
   
   .radio-player-mini {
     width: fit-content;
+    position: relative;
+  }
+  
+  .volume-control {
+    z-index: 20;
+  }
+  
+  .volume-slider {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   
   input[type=range] {
@@ -267,6 +323,7 @@
     background: #e5e7eb;
     border-radius: 3px;
     -webkit-appearance: none;
+    touch-action: manipulation;
   }
   
   input[type=range]::-webkit-slider-thumb {
@@ -285,5 +342,22 @@
     background: var(--color-primary, #39a900);
     cursor: pointer;
     border: none;
+  }
+  
+  /* Ajustes para móviles */
+  @media (max-width: 768px) {
+    input[type=range]::-webkit-slider-thumb {
+      width: 22px;
+      height: 22px;
+    }
+    
+    input[type=range]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+    }
+    
+    input[type=range] {
+      height: 8px;
+    }
   }
 </style> 
