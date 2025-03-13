@@ -112,49 +112,48 @@
     checkNetworkAndReconnect();
   }
   
-  // Función mejorada para verificar la conexión a internet
-  function checkNetworkAndReconnect(): void {
-    if (browser) {
-      connectionStatus = 'disconnected';
-      isLoading = false;
-      
-      // Guardar estado de reproducción
-      wasPlayingBeforeDisconnect = isPlaying;
-      
-      // Primero verificamos si hay conexión a internet en general
-      if (!navigator.onLine) {
-        console.warn('No hay conexión a internet detectada');
-        // Esperamos a que se restaure la conexión
-        return;
-      }
-      
-      // Si hay conexión a internet pero falla el stream, intentamos reconectar
-      console.log('Hay conexión a internet pero el stream falló, intentando reconectar...');
-      if (reconnectCount < reconnectAttempts) {
-        reconnectCount++;
-        attemptReconnect();
-      }
-    }
-  }
-  
   // Verificar activamente la conexión al servidor de streaming
   function setupConnectionHeartbeat(): void {
     if (heartbeatIntervalId) {
       clearInterval(heartbeatIntervalId);
     }
     
+    // Contador para evitar falsos positivos
+    let silenceDetectionCounter: number = 0;
+    let lastBufferLevel: number = 0;
+    
     heartbeatIntervalId = setInterval(() => {
       if (!audioElement || !isPlaying) return;
       
-      // Si hace más de 10 segundos que no recibimos datos y se supone que estamos reproduciendo
+      // Si hace más de 15 segundos que no recibimos datos y se supone que estamos reproduciendo
       const now = Date.now();
       const timeSinceLastSuccess = now - lastSuccessfulPlayTime;
       
-      // Si han pasado más de 10 segundos sin reproducción exitosa
-      if (isPlaying && timeSinceLastSuccess > 10000 && connectionStatus === 'connected') {
-        console.warn('No se han recibido datos de audio en 10 segundos, verificando conexión...');
-        connectionStatus = 'reconnecting';
-        checkNetworkAndReconnect();
+      // Verificar si hay un cambio en el buffer - esto indica que los datos siguen llegando
+      if (bufferStatus !== lastBufferLevel) {
+        // Restablecer el contador de verificación porque se detectó actividad en el buffer
+        silenceDetectionCounter = 0;
+        lastSuccessfulPlayTime = now;
+        lastBufferLevel = bufferStatus;
+      }
+      
+      // Solo verificar si han pasado más de 15 segundos sin reproducción exitosa
+      // Esto es más tolerante que los 10 segundos anteriores
+      if (isPlaying && timeSinceLastSuccess > 15000 && connectionStatus === 'connected') {
+        console.warn('No se han recibido datos de audio en 15 segundos, iniciando verificación...');
+        
+        // En lugar de marcar inmediatamente como reconectando, incrementamos el contador
+        silenceDetectionCounter++;
+        
+        // Solo después de 3 intervalos consecutivos sin datos (15 segundos) consideramos que hay un problema
+        if (silenceDetectionCounter >= 3) {
+          console.warn('Posible desconexión detectada después de verificaciones múltiples');
+          connectionStatus = 'reconnecting';
+          checkNetworkAndReconnect();
+          silenceDetectionCounter = 0;
+        } else {
+          console.log(`Verificación ${silenceDetectionCounter} de 3: esperando para confirmar posible desconexión`);
+        }
       }
       
       // Verificar si hay datos de audio llegando (usando el analizador)
@@ -165,28 +164,42 @@
           
           // Si no hay datos de audio (silencio total) por un tiempo
           if (sum === 0 && isPlaying) {
-            console.warn('Detectado silencio total en el stream, posible desconexión');
+            // En lugar de registrar advertencia inmediatamente, incrementamos el contador
+            silenceDetectionCounter++;
             
-            // Verificamos si este silencio persiste por un tiempo antes de reconectar
-            setTimeout(() => {
-              if (isPlaying && connectionStatus === 'connected' && analyser && audioData) {
-                try {
-                  analyser.getByteFrequencyData(audioData);
-                  const newSum = audioData.reduce((a, b) => a + b, 0);
-                  
-                  if (newSum === 0) {
-                    console.warn('Silencio persistente, intentando reconectar...');
-                    connectionStatus = 'reconnecting';
-                    checkNetworkAndReconnect();
+            // Solo después de 3 intervalos consecutivos de silencio consideramos que puede haber un problema
+            if (silenceDetectionCounter >= 3) {
+              console.warn('Silencio persistente detectado después de múltiples verificaciones');
+              
+              // Verificamos si este silencio persiste por un tiempo antes de reconectar
+              setTimeout(() => {
+                if (isPlaying && connectionStatus === 'connected' && analyser && audioData) {
+                  try {
+                    analyser.getByteFrequencyData(audioData);
+                    const newSum = audioData.reduce((a, b) => a + b, 0);
+                    
+                    // Una verificación adicional antes de iniciar la reconexión
+                    if (newSum === 0) {
+                      console.warn('Silencio persistente confirmado, intentando reconectar...');
+                      connectionStatus = 'reconnecting';
+                      checkNetworkAndReconnect();
+                    } else {
+                      // Si ahora hay datos, restablecer contador
+                      silenceDetectionCounter = 0;
+                      lastSuccessfulPlayTime = Date.now();
+                    }
+                  } catch (error) {
+                    console.error('Error al analizar datos de audio durante verificación:', error);
                   }
-                } catch (error) {
-                  console.error('Error al analizar datos de audio durante verificación:', error);
                 }
-              }
-            }, 5000);
+              }, 5000);
+            } else {
+              console.log(`Detección de silencio ${silenceDetectionCounter} de 3: monitoreando...`);
+            }
           } else if (sum > 0) {
-            // Hay datos de audio, actualizar último tiempo de éxito
+            // Hay datos de audio, actualizar último tiempo de éxito y resetear contador
             lastSuccessfulPlayTime = now;
+            silenceDetectionCounter = 0;
           }
         } catch (error) {
           console.error('Error al analizar datos de audio:', error);
@@ -201,33 +214,92 @@
       clearInterval(networkCheckIntervalId);
     }
     
+    let consecutiveFailures: number = 0;
+    
     networkCheckIntervalId = setInterval(() => {
-      // Realizar una petición a un servicio conocido para verificar conectividad real
-      if (browser && isPlaying) {
+      // Solo realizar verificación de red si está reproduciendo o intentó reproducir
+      if (browser && (isPlaying || wasPlayingBeforeDisconnect)) {
         fetch('https://www.google.com/favicon.ico', { 
           mode: 'no-cors',
           cache: 'no-store',
-          method: 'HEAD'
+          method: 'HEAD',
+          // Añadir un timeout de 5 segundos para evitar esperas largas
+          signal: AbortSignal.timeout(5000)
         })
         .then(() => {
-          // Hay conexión a internet, si estamos desconectados intentar reconectar
+          // Hay conexión a internet, resetear contador de fallos
+          consecutiveFailures = 0;
+          
+          // Si estamos desconectados pero hay internet, intentar reconectar
           if (connectionStatus === 'disconnected' && wasPlayingBeforeDisconnect) {
-            console.log('Conexión a internet restaurada, intentando reconectar al stream...');
+            console.log('Conexión a internet confirmada, intentando reconectar al stream...');
             reconnectCount = 0;
             attemptReconnect();
           }
         })
         .catch(err => {
           console.warn('Error al verificar conexión a internet:', err);
-          // Si estábamos reproduciendo, marcar desconexión
-          if (isPlaying) {
+          
+          // Incrementar contador de fallos consecutivos
+          consecutiveFailures++;
+          
+          // Solo considerar problema de red después de 2 fallos consecutivos
+          if (consecutiveFailures >= 2 && isPlaying) {
+            console.warn('Múltiples fallos de conexión a internet detectados');
             connectionStatus = 'disconnected';
             wasPlayingBeforeDisconnect = true;
             stopPlayback();
           }
         });
       }
-    }, 15000); // Verificar cada 15 segundos
+    }, 20000); // Verificar cada 20 segundos (aumentado de 15s para reducir solicitudes)
+  }
+  
+  // Función mejorada para verificar la conexión a internet
+  function checkNetworkAndReconnect(): void {
+    if (browser) {
+      // No cambiar el estado de conexión inmediatamente
+      // Guardamos el estado actual de reproducción
+      wasPlayingBeforeDisconnect = isPlaying;
+      
+      // Primero verificamos si hay conexión a internet en general
+      if (!navigator.onLine) {
+        console.warn('No hay conexión a internet detectada por el navegador');
+        connectionStatus = 'disconnected';
+        isLoading = false;
+        // Esperamos a que se restaure la conexión
+        return;
+      }
+      
+      // Hacer una verificación real de la conectividad a internet
+      fetch('https://www.google.com/favicon.ico', { 
+        mode: 'no-cors',
+        cache: 'no-store',
+        method: 'HEAD',
+        signal: AbortSignal.timeout(5000)
+      })
+      .then(() => {
+        console.log('Conexión a internet confirmada, problema con el stream');
+        
+        // Si hay conexión a internet pero el stream falló, intentamos reconectar
+        if (reconnectCount < reconnectAttempts) {
+          reconnectCount++;
+          connectionStatus = 'reconnecting';
+          isLoading = true;
+          attemptReconnect();
+        } else {
+          // Se agotaron los intentos
+          connectionStatus = 'disconnected';
+          isLoading = false;
+        }
+      })
+      .catch(err => {
+        console.warn('No se pudo verificar conexión a internet real:', err);
+        // Asumir que es un problema de red
+        connectionStatus = 'disconnected';
+        isLoading = false;
+      });
+    }
   }
   
   // Monitorear buffer y calidad de conexión
