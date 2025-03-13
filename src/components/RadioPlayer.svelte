@@ -2,62 +2,365 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   
-  // URL del stream de audio (reemplazar con la URL real de tu estación)
-  export let streamUrl: string = "https://streaming.radio.co/example-station";
+  // URL del stream de audio (URL real de la estación)
+  export let streamUrl: string = "https://stream.zeno.fm/1rmbpjhryyrtv";
   export let stationName: string = "CDITI Radio";
   export let showMiniPlayer: boolean = false; // Para controlar si se muestra la versión mini
   
-  let audio: HTMLAudioElement;
+  // Propiedades para el sistema de buffer y reconexión
+  export let reconnectAttempts: number = 5;
+  export let bufferLength: number = 3; // En segundos
+  export let maxBufferLength: number = 10; // Máximo buffer en segundos (para evitar latencia)
+  
+  // Variables para controlar el estado del reproductor
   let isPlaying: boolean = false;
-  let volume: number = 1.0; // Cambiado a 1.0 (100%)
+  let volume: number = 1.0;
   let isMuted: boolean = false;
   let previousVolume: number = volume;
   let dragging: boolean = false;
-  let showVolumeSlider: boolean = false;
   
   // Estado de carga del reproductor
   let isLoading: boolean = false;
   
-  // Información de la canción (puede venir de una API)
-  let currentSong: string = "Cargando información...";
-  let currentArtist: string = "";
-  
   // Para compatibilidad móvil
   let isMobile: boolean = false;
   
-  // Sistema de reconexión
+  // Sistema de reconexión y estado de conexión
   let isReconnecting: boolean = false;
-  let reconnectAttempts: number = 0;
-  let maxReconnectAttempts: number = 5;
-  let reconnectInterval: number = 5000; // 5 segundos entre intentos
-  let reconnectTimer: ReturnType<typeof setTimeout>;
+  let reconnectCount: number = 0;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let wasPlayingBeforeDisconnect: boolean = false;
   let connectionStatus: 'connected' | 'disconnected' | 'reconnecting' = 'connected';
   
-  // Timer para simular cambios de canción (reemplazar con datos reales)
-  let songUpdateTimer: ReturnType<typeof setTimeout>;
+  // Variables para el manejo del buffer
+  let bufferStatus: number = 0; // Porcentaje de buffer lleno
+  let audioContext: AudioContext | null = null;
+  let audioElement: HTMLAudioElement | null = null;
+  let mediaSource: MediaElementAudioSourceNode | null = null;
+  let analyser: AnalyserNode | null = null;
+  let audioData: Uint8Array | null = null;
+  let checkBufferIntervalId: ReturnType<typeof setInterval> | null = null;
+  let updateVisualizationIntervalId: ReturnType<typeof setInterval> | null = null;
   
-  function togglePlay(): void {
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      playAudio();
+  // Crear elemento de audio nativo
+  function createAudioElement(): HTMLAudioElement {
+    // Crear un nuevo elemento de audio
+    const audio = document.createElement('audio');
+    audio.src = streamUrl;
+    audio.preload = 'auto';
+    audio.crossOrigin = 'anonymous'; // Para permitir análisis de audio
+    audio.volume = volume;
+    
+    // Agregar eventos
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('canplay', handleCanPlay);
+    
+    // Intenta reducir la latencia en dispositivos compatibles
+    if ('mozAutoplayEnabled' in audio || 'webkitAudioContext' in window) {
+      try {
+        // @ts-ignore - Estas propiedades no están en la definición estándar
+        if (audio.mozFrameBufferLength) {
+          // @ts-ignore
+          audio.mozFrameBufferLength = 1024;
+        }
+        // @ts-ignore
+        if (audio.mozSampleRate) {
+          // @ts-ignore
+          audio.mozSampleRate = 48000;
+        }
+      } catch (e) {
+        console.warn('Error al configurar propiedades avanzadas de audio:', e);
+      }
+    }
+    
+    return audio;
+  }
+  
+  // Manejadores de eventos de audio
+  function handlePlaying(): void {
+    isPlaying = true;
+    isLoading = false;
+    connectionStatus = 'connected';
+    reconnectCount = 0; // Resetear contador de reconexiones
+  }
+  
+  function handlePause(): void {
+    isPlaying = false;
+  }
+  
+  function handleWaiting(): void {
+    isLoading = true;
+  }
+  
+  function handleCanPlay(): void {
+    isLoading = false;
+  }
+  
+  function handleError(event: Event): void {
+    console.error('Error en reproducción de audio:', event);
+    connectionStatus = 'disconnected';
+    isLoading = false;
+    
+    // Si ocurre un error, intentar reconectar
+    if (reconnectCount < reconnectAttempts) {
+      reconnectCount++;
+      attemptReconnect();
     }
   }
   
-  function playAudio(): void {
-    isLoading = true;
-    audio.play().catch((error: Error) => {
-      console.error("Error al reproducir:", error);
-      isLoading = false;
+  // Monitorear buffer y calidad de conexión
+  function setupBufferMonitoring(): void {
+    if (!audioElement) return;
+    
+    checkBufferIntervalId = setInterval(() => {
+      if (!audioElement || !isPlaying) return;
       
-      // Si hay un error de red, intentar reconectar
-      if (browser && navigator.onLine === false || error.name === 'NotSupportedError' || error.message.includes('network')) {
-        startReconnection();
+      try {
+        // Comprobar el estado del buffer
+        const buffered = audioElement.buffered;
+        if (buffered.length > 0) {
+          const currentTime = audioElement.currentTime;
+          const bufferedEnd = buffered.end(buffered.length - 1);
+          const bufferedAmount = bufferedEnd - currentTime;
+          
+          // Calcular el porcentaje de buffer como proporción del buffer máximo deseado
+          bufferStatus = Math.min(100, (bufferedAmount / bufferLength) * 100);
+          
+          // Si el buffer es demasiado grande (provoca latencia), reiniciar la reproducción
+          if (bufferedAmount > maxBufferLength && isPlaying) {
+            const wasPlaying = isPlaying;
+            audioElement.currentTime = bufferedEnd - bufferLength;
+            if (wasPlaying) {
+              audioElement.play().catch(err => {
+                console.error('Error al ajustar buffer:', err);
+              });
+            }
+          }
+          
+          // Si el buffer está vacío y debería estar reproduciendo, verificar conexión
+          if (bufferedAmount < 0.5 && isPlaying && connectionStatus === 'connected') {
+            console.warn('Buffer bajo, verificando conexión...');
+            connectionStatus = 'reconnecting';
+            isReconnecting = true;
+            
+            // Esperar un momento para que se llene el buffer
+            setTimeout(() => {
+              if (connectionStatus === 'reconnecting') {
+                // Si sigue reconectando después de 5 segundos, intentar reiniciar
+                attemptReconnect();
+              }
+            }, 5000);
+          }
+        }
+      } catch (e) {
+        console.error('Error al monitorear buffer:', e);
       }
-    });
+    }, 1000);
   }
   
+  // Iniciar la reproducción
+  async function startPlayback(): Promise<void> {
+    isLoading = true;
+    
+    try {
+      if (!audioElement && browser) {
+        // Crear elemento de audio si no existe
+        audioElement = createAudioElement();
+        setupAudioAnalysis();
+        setupBufferMonitoring();
+      }
+      
+      if (audioElement) {
+        const playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              isPlaying = true;
+              isLoading = false;
+              connectionStatus = 'connected';
+            })
+            .catch(error => {
+              console.error('Error al reproducir audio:', error);
+              
+              // Manejar error de reproducción automática
+              if (error.name === 'NotAllowedError') {
+                console.warn('Reproducción automática bloqueada por el navegador');
+                isLoading = false;
+              } else {
+                handleError(error);
+              }
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error al iniciar reproducción:', error);
+      isLoading = false;
+      connectionStatus = 'disconnected';
+    }
+  }
+  
+  // Detener la reproducción
+  function stopPlayback(): void {
+    try {
+      if (audioElement) {
+        audioElement.pause();
+        isPlaying = false;
+      }
+    } catch (error) {
+      console.error('Error al detener reproducción:', error);
+    }
+  }
+  
+  // Alternar reproducción/pausa
+  function togglePlay(): void {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      startPlayback();
+    }
+  }
+  
+  // Intentar reconexión automática
+  function attemptReconnect(): void {
+    connectionStatus = 'reconnecting';
+    isReconnecting = true;
+    
+    console.log(`Intentando reconectar (intento ${reconnectCount} de ${reconnectAttempts})...`);
+    
+    // Limpiar cualquier temporizador existente
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+    }
+    
+    // Detener y reiniciar el elemento de audio
+    if (audioElement) {
+      const currentVolume = audioElement.volume;
+      
+      try {
+        audioElement.pause();
+        
+        // Liberar recursos y crear un nuevo elemento
+        audioElement.removeEventListener('playing', handlePlaying);
+        audioElement.removeEventListener('pause', handlePause);
+        audioElement.removeEventListener('waiting', handleWaiting);
+        audioElement.removeEventListener('error', handleError);
+        audioElement.removeEventListener('canplay', handleCanPlay);
+        
+        // Crear nuevo elemento con URL actualizada (evita caché)
+        const newUrl = streamUrl + (streamUrl.includes('?') ? '&' : '?') + 'cacheBust=' + Date.now();
+        const newAudio = document.createElement('audio');
+        newAudio.src = newUrl;
+        newAudio.preload = 'auto';
+        newAudio.crossOrigin = 'anonymous'; 
+        newAudio.volume = currentVolume;
+        
+        newAudio.addEventListener('playing', handlePlaying);
+        newAudio.addEventListener('pause', handlePause);
+        newAudio.addEventListener('waiting', handleWaiting);
+        newAudio.addEventListener('error', handleError);
+        newAudio.addEventListener('canplay', handleCanPlay);
+        
+        audioElement = newAudio;
+        
+        // Resetear contexto de audio si es necesario
+        if (audioContext && mediaSource) {
+          setupAudioAnalysis();
+        }
+        
+        if (wasPlayingBeforeDisconnect) {
+          audioElement.play()
+            .then(() => {
+              connectionStatus = 'connected';
+              isReconnecting = false;
+            })
+            .catch(error => {
+              console.error('Error en reconexión:', error);
+              
+              // Programar otro intento si aún quedan
+              if (reconnectCount < reconnectAttempts) {
+                reconnectTimer = setTimeout(() => {
+                  attemptReconnect();
+                }, 3000);
+              } else {
+                connectionStatus = 'disconnected';
+                isReconnecting = false;
+              }
+            });
+        } else {
+          connectionStatus = 'connected';
+          isReconnecting = false;
+        }
+      } catch (error) {
+        console.error('Error al reiniciar audio:', error);
+        
+        // Programar otro intento
+        if (reconnectCount < reconnectAttempts) {
+          reconnectTimer = setTimeout(() => {
+            attemptReconnect();
+          }, 3000);
+        } else {
+          connectionStatus = 'disconnected';
+          isReconnecting = false;
+        }
+      }
+    } else {
+      // Si no hay elemento de audio, crearlo e intentar reproducir
+      audioElement = createAudioElement();
+      
+      if (wasPlayingBeforeDisconnect) {
+        startPlayback();
+      } else {
+        connectionStatus = 'connected';
+        isReconnecting = false;
+      }
+    }
+  }
+  
+  // Forzar reconexión manual
+  function forceReconnect(): void {
+    wasPlayingBeforeDisconnect = isPlaying;
+    reconnectCount = 0;
+    attemptReconnect();
+  }
+  
+  // Manejar cambios en la conexión de red
+  function handleNetworkChange(): void {
+    if (browser && navigator.onLine) {
+      // Volvimos a tener conexión, intentar reconectar
+      if (connectionStatus === 'disconnected') {
+        wasPlayingBeforeDisconnect = isPlaying;
+        reconnectCount = 0;
+        attemptReconnect();
+      }
+    } else if (browser && !navigator.onLine) {
+      // Perdimos la conexión
+      connectionStatus = 'disconnected';
+      wasPlayingBeforeDisconnect = isPlaying;
+      stopPlayback();
+    }
+  }
+  
+  // Configurar el volumen
+  function handleVolumeChange(e: Event): void {
+    const target = e.target as HTMLInputElement;
+    volume = parseFloat(target.value);
+    
+    if (audioElement) {
+      audioElement.volume = volume;
+    }
+    
+    isMuted = volume === 0;
+    
+    // Actualizar la variable CSS para la visualización del volumen
+    if (target) {
+      target.style.setProperty('--volume-percentage', `${volume * 100}%`);
+    }
+  }
+  
+  // Silenciar/reactivar el sonido
   function toggleMute(): void {
     if (isMuted) {
       volume = previousVolume;
@@ -67,21 +370,13 @@
       volume = 0;
       isMuted = true;
     }
-    audio.volume = volume;
-  }
-  
-  function handleVolumeChange(e: Event): void {
-    const target = e.target as HTMLInputElement;
-    volume = parseFloat(target.value);
-    audio.volume = volume;
-    isMuted = volume === 0;
     
-    // Actualizar la variable CSS para la visualización del volumen
-    if (target) {
-      target.style.setProperty('--volume-percentage', `${volume * 100}%`);
+    if (audioElement) {
+      audioElement.volume = volume;
     }
   }
   
+  // Funciones para el control de volumen táctil
   function handleVolumeStart(): void {
     dragging = true;
   }
@@ -90,7 +385,6 @@
     dragging = false;
   }
   
-  // Funciones para soporte táctil
   function handleTouchStart(): void {
     dragging = true;
   }
@@ -107,104 +401,63 @@
         const touchX = e.touches[0].clientX - rect.left;
         const percentage = touchX / rect.width;
         volume = Math.min(Math.max(percentage, 0), 1);
-        audio.volume = volume;
+        
+        if (audioElement) {
+          audioElement.volume = volume;
+        }
+        
         isMuted = volume === 0;
       }
     }
   }
   
-  // Sistema de reconexión automática
-  function startReconnection(): void {
-    if (isReconnecting) return;
+  // Analizar datos de audio para visualización (opcional)
+  function setupAudioAnalysis(): void {
+    if (!browser || !window.AudioContext || !audioElement) return;
     
-    wasPlayingBeforeDisconnect = isPlaying;
-    connectionStatus = 'reconnecting';
-    isReconnecting = true;
-    reconnectAttempts = 0;
-    
-    attemptReconnect();
-  }
-  
-  function attemptReconnect(): void {
-    if (reconnectAttempts >= maxReconnectAttempts) {
-      isReconnecting = false;
-      connectionStatus = 'disconnected';
-      console.log("Número máximo de intentos de reconexión alcanzado");
-      return;
-    }
-    
-    reconnectAttempts++;
-    console.log(`Intento de reconexión ${reconnectAttempts}/${maxReconnectAttempts}`);
-    
-    // Reiniciar el audio
-    if (audio) {
-      // Parar el audio actual
-      audio.pause();
+    try {
+      // Limpiar intervalo anterior si existe
+      if (updateVisualizationIntervalId) {
+        clearInterval(updateVisualizationIntervalId);
+      }
       
-      // Recargar el stream
-      audio.load();
+      // Crear nuevo contexto de audio si no existe
+      if (!audioContext) {
+        audioContext = new AudioContext();
+      }
       
-      // Si estaba reproduciendo antes, intentar reproducir de nuevo
-      if (wasPlayingBeforeDisconnect) {
-        audio.play().then(() => {
-          isReconnecting = false;
-          connectionStatus = 'connected';
-          console.log("Reconexión exitosa");
-        }).catch(error => {
-          console.error("Error al reconectar:", error);
-          
-          // Programar otro intento
-          reconnectTimer = setTimeout(() => {
-            attemptReconnect();
-          }, reconnectInterval);
-        });
-      } else {
-        isReconnecting = false;
-      }
+      // Configurar analizador
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      
+      // Conectar elemento de audio al analizador
+      mediaSource = audioContext.createMediaElementSource(audioElement);
+      mediaSource.connect(analyser);
+      analyser.connect(audioContext.destination);
+      
+      // Crear array para datos de frecuencia
+      audioData = new Uint8Array(analyser.frequencyBinCount);
+      
+      // Configurar intervalo para actualizar visualización
+      updateVisualizationIntervalId = setInterval(() => {
+        if (analyser && isPlaying && audioData) {
+          analyser.getByteFrequencyData(audioData);
+          // Los datos están ahora en audioData y podrían usarse para visualización
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error al configurar análisis de audio:', error);
     }
-  }
-  
-  function handleNetworkChange(): void {
-    if (browser && navigator.onLine) {
-      // Volvimos a tener conexión, intentar reconectar
-      if (connectionStatus === 'disconnected') {
-        startReconnection();
-      }
-    } else if (browser && !navigator.onLine) {
-      // Perdimos la conexión
-      connectionStatus = 'disconnected';
-      if (isPlaying) {
-        wasPlayingBeforeDisconnect = true;
-      }
-    }
-  }
-  
-  // Función para obtener información de la canción actual (simulada)
-  function updateSongInfo(): void {
-    // Aquí podrías hacer una llamada API para obtener la información real
-    // Para este ejemplo, usaremos datos estáticos alternados
-    
-    const songs = [
-      { title: "Entrevista Especial", artist: "Programa Matutino" },
-      { title: "Últimas Noticias", artist: "Noticiero CDITI" },
-      { title: "Temas de Tecnología", artist: "TechTalk CDITI" },
-      { title: "Lo Mejor del SENA", artist: "Radio CDITI" }
-    ];
-    
-    const randomSong = songs[Math.floor(Math.random() * songs.length)];
-    currentSong = randomSong.title;
-    currentArtist = randomSong.artist;
-    
-    // Actualizar cada 30 segundos (simulando cambios de programa)
-    songUpdateTimer = setTimeout(updateSongInfo, 30000);
   }
   
   onMount(() => {
     // Detectar si es un dispositivo móvil
     isMobile = browser && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    if (audio) {
-      audio.volume = volume;
+    // Inicializar reproductor
+    if (browser) {
+      audioElement = createAudioElement();
+      setupBufferMonitoring();
       
       // Inicializar la variable CSS para la visualización del volumen
       setTimeout(() => {
@@ -214,59 +467,39 @@
         }
       }, 0);
       
-      // Manejadores de eventos para el elemento audio
-      audio.addEventListener('playing', () => {
-        isPlaying = true;
-        isLoading = false;
-        connectionStatus = 'connected';
-      });
-      
-      audio.addEventListener('pause', () => {
-        isPlaying = false;
-      });
-      
-      audio.addEventListener('waiting', () => {
-        isLoading = true;
-      });
-      
-      audio.addEventListener('error', (e) => {
-        console.error("Error de audio:", e);
-        if (browser && navigator.onLine !== false) { // Solo si no sabemos ya que estamos desconectados
-          startReconnection();
-        }
-      });
-      
-      audio.addEventListener('stalled', () => {
-        console.log("Audio estancado, intentando reconectar");
-        startReconnection();
-      });
-      
-      // Eventos de red - solo en el navegador
-      if (browser) {
-        window.addEventListener('online', handleNetworkChange);
-        window.addEventListener('offline', handleNetworkChange);
-      }
-      
-      // Iniciar la simulación de información de canciones
-      updateSongInfo();
+      // Configurar eventos de red
+      window.addEventListener('online', handleNetworkChange);
+      window.addEventListener('offline', handleNetworkChange);
     }
   });
   
   onDestroy(() => {
-    // Limpiar el timer cuando el componente se destruye
-    if (songUpdateTimer) clearTimeout(songUpdateTimer);
+    // Limpiar eventos y recursos
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      audioElement.load();
+      audioElement.removeEventListener('playing', handlePlaying);
+      audioElement.removeEventListener('pause', handlePause);
+      audioElement.removeEventListener('waiting', handleWaiting);
+      audioElement.removeEventListener('error', handleError);
+      audioElement.removeEventListener('canplay', handleCanPlay);
+    }
+    
+    // Limpiar intervalos y timeouts
+    if (checkBufferIntervalId) clearInterval(checkBufferIntervalId);
+    if (updateVisualizationIntervalId) clearInterval(updateVisualizationIntervalId);
     if (reconnectTimer) clearTimeout(reconnectTimer);
     
-    // Remover listeners de red - solo en el navegador
+    // Cerrar contexto de audio
+    if (audioContext) {
+      audioContext.close();
+    }
+    
+    // Remover listeners de red
     if (browser) {
       window.removeEventListener('online', handleNetworkChange);
       window.removeEventListener('offline', handleNetworkChange);
-    }
-    
-    // Detener audio y limpiar eventos
-    if (audio) {
-      audio.pause();
-      audio.src = '';
     }
   });
 </script>
@@ -291,14 +524,7 @@
           {/if}
         </div>
         <span class="text-sm font-semibold text-secondary">
-          {stationName} - 
-          {#if connectionStatus === 'connected'}
-            En Vivo
-          {:else if connectionStatus === 'reconnecting'}
-            Reconectando...
-          {:else}
-            Desconectado
-          {/if}
+          CDITI Radio
         </span>
       </div>
       
@@ -336,24 +562,35 @@
             {:else if connectionStatus === 'reconnecting'}
               Reconectando...
             {:else}
-              {currentSong}
+              Transmisión en vivo
             {/if}
           </h3>
           <p class="text-xs text-gray-500">
             {#if connectionStatus === 'disconnected'}
               Esperando conexión a internet
             {:else if connectionStatus === 'reconnecting'}
-              Intento {reconnectAttempts}/{maxReconnectAttempts}
-            {:else}
-              {currentArtist}
+              Intento de reconexión en curso
             {/if}
           </p>
         </div>
         
+        <!-- Indicador de buffer -->
+        {#if isPlaying && connectionStatus === 'connected'}
+        <div class="buffer-indicator mb-2">
+          <div class="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div class="h-full bg-tertiary rounded-full transition-all duration-300" style="width: {bufferStatus}%"></div>
+          </div>
+          <div class="flex justify-between mt-1">
+            <span class="text-xs text-gray-400">Buffer</span>
+            <span class="text-xs text-gray-400">{Math.round(bufferStatus)}%</span>
+          </div>
+        </div>
+        {/if}
+        
         <!-- Control de volumen estático -->
         <div class="volume-control mb-4 w-full px-1">
           <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-            <span class="volume-min">Min</span>
+            <span class="volume-min">Volumen: Min</span>
             <span class="volume-label">{Math.round(volume * 100)}%</span>
             <span class="volume-max">Max</span>
           </div>
@@ -371,13 +608,18 @@
             on:touchend={handleTouchEnd}
             class="w-full slider-progress"
             style="--volume-percentage: {volume * 100}%"
+            aria-label="Control de volumen"
+            title="Ajustar volumen"
           />
+          <div class="text-center text-xs text-gray-400 mt-1">
+            <small>Desliza para ajustar el volumen</small>
+          </div>
         </div>
         
         <div class="flex justify-center">
           {#if connectionStatus === 'disconnected'}
             <button 
-              on:click={startReconnection}
+              on:click={forceReconnect}
               class="play-button bg-red-500 text-white h-12 w-12 rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-all hover:scale-105 active:scale-95"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -433,14 +675,14 @@
         {:else if connectionStatus === 'reconnecting'}
           Reconectando...
         {:else}
-          {currentSong}
+          En vivo
         {/if}
       </span>
     </div>
     
     {#if connectionStatus === 'disconnected'}
       <button 
-        on:click={startReconnection}
+        on:click={forceReconnect}
         class="h-8 w-8 bg-red-100 text-red-500 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -472,13 +714,6 @@
     {/if}
   </div>
   {/if}
-  
-  <!-- Elemento de audio oculto -->
-  <audio 
-    bind:this={audio}
-    src={streamUrl}
-    preload="none"
-  ></audio>
 </div>
 
 <style>
@@ -518,7 +753,7 @@
     touch-action: manipulation;
   }
   
-  /* Estilo para la barra de progreso */
+  /* Estilo para la barra de progreso del volumen */
   input[type=range].slider-progress {
     background: linear-gradient(to right, var(--color-primary, #39a900) 0%, var(--color-primary, #39a900) var(--volume-percentage), #e5e7eb var(--volume-percentage), #e5e7eb 100%);
   }
@@ -558,5 +793,10 @@
     input[type=range] {
       height: 8px;
     }
+  }
+  
+  /* Estilos para el indicador de buffer */
+  .buffer-indicator {
+    transition: opacity 0.3s ease-in-out;
   }
 </style> 

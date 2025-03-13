@@ -25,6 +25,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"icecast-metadata-player": "^1.17.9",
 		"pocketbase": "^0.21.2"
 	}
 }
