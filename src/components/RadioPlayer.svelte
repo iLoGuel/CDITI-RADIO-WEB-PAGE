@@ -42,6 +42,11 @@
   let checkBufferIntervalId: ReturnType<typeof setInterval> | null = null;
   let updateVisualizationIntervalId: ReturnType<typeof setInterval> | null = null;
   
+  // Intervalo para verificar la conexión del stream
+  let heartbeatIntervalId: ReturnType<typeof setInterval> | null = null;
+  let lastSuccessfulPlayTime: number = 0;
+  let networkCheckIntervalId: ReturnType<typeof setInterval> | null = null;
+  
   // Crear elemento de audio nativo
   function createAudioElement(): HTMLAudioElement {
     // Crear un nuevo elemento de audio
@@ -85,6 +90,7 @@
     isLoading = false;
     connectionStatus = 'connected';
     reconnectCount = 0; // Resetear contador de reconexiones
+    lastSuccessfulPlayTime = Date.now(); // Registrar tiempo de reproducción exitosa
   }
   
   function handlePause(): void {
@@ -101,14 +107,127 @@
   
   function handleError(event: Event): void {
     console.error('Error en reproducción de audio:', event);
-    connectionStatus = 'disconnected';
-    isLoading = false;
     
-    // Si ocurre un error, intentar reconectar
-    if (reconnectCount < reconnectAttempts) {
-      reconnectCount++;
-      attemptReconnect();
+    // Verificar si la desconexión podría ser por problemas de red
+    checkNetworkAndReconnect();
+  }
+  
+  // Función mejorada para verificar la conexión a internet
+  function checkNetworkAndReconnect(): void {
+    if (browser) {
+      connectionStatus = 'disconnected';
+      isLoading = false;
+      
+      // Guardar estado de reproducción
+      wasPlayingBeforeDisconnect = isPlaying;
+      
+      // Primero verificamos si hay conexión a internet en general
+      if (!navigator.onLine) {
+        console.warn('No hay conexión a internet detectada');
+        // Esperamos a que se restaure la conexión
+        return;
+      }
+      
+      // Si hay conexión a internet pero falla el stream, intentamos reconectar
+      console.log('Hay conexión a internet pero el stream falló, intentando reconectar...');
+      if (reconnectCount < reconnectAttempts) {
+        reconnectCount++;
+        attemptReconnect();
+      }
     }
+  }
+  
+  // Verificar activamente la conexión al servidor de streaming
+  function setupConnectionHeartbeat(): void {
+    if (heartbeatIntervalId) {
+      clearInterval(heartbeatIntervalId);
+    }
+    
+    heartbeatIntervalId = setInterval(() => {
+      if (!audioElement || !isPlaying) return;
+      
+      // Si hace más de 10 segundos que no recibimos datos y se supone que estamos reproduciendo
+      const now = Date.now();
+      const timeSinceLastSuccess = now - lastSuccessfulPlayTime;
+      
+      // Si han pasado más de 10 segundos sin reproducción exitosa
+      if (isPlaying && timeSinceLastSuccess > 10000 && connectionStatus === 'connected') {
+        console.warn('No se han recibido datos de audio en 10 segundos, verificando conexión...');
+        connectionStatus = 'reconnecting';
+        checkNetworkAndReconnect();
+      }
+      
+      // Verificar si hay datos de audio llegando (usando el analizador)
+      if (analyser && audioData && isPlaying) {
+        try {
+          analyser.getByteFrequencyData(audioData);
+          const sum = audioData.reduce((a, b) => a + b, 0);
+          
+          // Si no hay datos de audio (silencio total) por un tiempo
+          if (sum === 0 && isPlaying) {
+            console.warn('Detectado silencio total en el stream, posible desconexión');
+            
+            // Verificamos si este silencio persiste por un tiempo antes de reconectar
+            setTimeout(() => {
+              if (isPlaying && connectionStatus === 'connected' && analyser && audioData) {
+                try {
+                  analyser.getByteFrequencyData(audioData);
+                  const newSum = audioData.reduce((a, b) => a + b, 0);
+                  
+                  if (newSum === 0) {
+                    console.warn('Silencio persistente, intentando reconectar...');
+                    connectionStatus = 'reconnecting';
+                    checkNetworkAndReconnect();
+                  }
+                } catch (error) {
+                  console.error('Error al analizar datos de audio durante verificación:', error);
+                }
+              }
+            }, 5000);
+          } else if (sum > 0) {
+            // Hay datos de audio, actualizar último tiempo de éxito
+            lastSuccessfulPlayTime = now;
+          }
+        } catch (error) {
+          console.error('Error al analizar datos de audio:', error);
+        }
+      }
+    }, 5000);
+  }
+  
+  // Verificar periódicamente el estado de la red
+  function setupNetworkCheck(): void {
+    if (networkCheckIntervalId) {
+      clearInterval(networkCheckIntervalId);
+    }
+    
+    networkCheckIntervalId = setInterval(() => {
+      // Realizar una petición a un servicio conocido para verificar conectividad real
+      if (browser && isPlaying) {
+        fetch('https://www.google.com/favicon.ico', { 
+          mode: 'no-cors',
+          cache: 'no-store',
+          method: 'HEAD'
+        })
+        .then(() => {
+          // Hay conexión a internet, si estamos desconectados intentar reconectar
+          if (connectionStatus === 'disconnected' && wasPlayingBeforeDisconnect) {
+            console.log('Conexión a internet restaurada, intentando reconectar al stream...');
+            reconnectCount = 0;
+            attemptReconnect();
+          }
+        })
+        .catch(err => {
+          console.warn('Error al verificar conexión a internet:', err);
+          // Si estábamos reproduciendo, marcar desconexión
+          if (isPlaying) {
+            connectionStatus = 'disconnected';
+            wasPlayingBeforeDisconnect = true;
+            stopPlayback();
+          }
+        });
+      }
+    }, 15000); // Verificar cada 15 segundos
   }
   
   // Monitorear buffer y calidad de conexión
@@ -271,24 +390,31 @@
         }
         
         if (wasPlayingBeforeDisconnect) {
-          audioElement.play()
-            .then(() => {
-              connectionStatus = 'connected';
-              isReconnecting = false;
-            })
-            .catch(error => {
-              console.error('Error en reconexión:', error);
-              
-              // Programar otro intento si aún quedan
-              if (reconnectCount < reconnectAttempts) {
-                reconnectTimer = setTimeout(() => {
-                  attemptReconnect();
-                }, 3000);
-              } else {
-                connectionStatus = 'disconnected';
+          // Pequeña pausa antes de intentar reconectar para asegurar que el navegador esté listo
+          setTimeout(() => {
+            if (!audioElement) return;
+            
+            audioElement.play()
+              .then(() => {
+                connectionStatus = 'connected';
                 isReconnecting = false;
-              }
-            });
+                console.log('Reconexión exitosa');
+              })
+              .catch(error => {
+                console.error('Error en reconexión:', error);
+                
+                // Programar otro intento si aún quedan
+                if (reconnectCount < reconnectAttempts) {
+                  reconnectTimer = setTimeout(() => {
+                    attemptReconnect();
+                  }, 3000);
+                } else {
+                  connectionStatus = 'disconnected';
+                  isReconnecting = false;
+                  console.error('Se agotaron los intentos de reconexión');
+                }
+              });
+          }, 1000);
         } else {
           connectionStatus = 'connected';
           isReconnecting = false;
@@ -330,13 +456,15 @@
   function handleNetworkChange(): void {
     if (browser && navigator.onLine) {
       // Volvimos a tener conexión, intentar reconectar
-      if (connectionStatus === 'disconnected') {
-        wasPlayingBeforeDisconnect = isPlaying;
+      console.log('Conexión a internet restaurada (evento online)');
+      if (connectionStatus === 'disconnected' && wasPlayingBeforeDisconnect) {
+        console.log('Intentando reconectar al stream después de restaurar conexión...');
         reconnectCount = 0;
         attemptReconnect();
       }
     } else if (browser && !navigator.onLine) {
       // Perdimos la conexión
+      console.warn('Conexión a internet perdida (evento offline)');
       connectionStatus = 'disconnected';
       wasPlayingBeforeDisconnect = isPlaying;
       stopPlayback();
@@ -458,6 +586,8 @@
     if (browser) {
       audioElement = createAudioElement();
       setupBufferMonitoring();
+      setupConnectionHeartbeat();  // Configurar heartbeat para verificar la conexión
+      setupNetworkCheck();        // Configurar verificación periódica de red
       
       // Inicializar la variable CSS para la visualización del volumen
       setTimeout(() => {
@@ -490,6 +620,8 @@
     if (checkBufferIntervalId) clearInterval(checkBufferIntervalId);
     if (updateVisualizationIntervalId) clearInterval(updateVisualizationIntervalId);
     if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (heartbeatIntervalId) clearInterval(heartbeatIntervalId);
+    if (networkCheckIntervalId) clearInterval(networkCheckIntervalId);
     
     // Cerrar contexto de audio
     if (audioContext) {
@@ -524,7 +656,13 @@
           {/if}
         </div>
         <span class="text-sm font-semibold text-secondary">
-          CDITI Radio
+          {#if connectionStatus === 'disconnected'}
+            Desconectado
+          {:else if connectionStatus === 'reconnecting'}
+            Reconectando...
+          {:else}
+            Transmisión en vivo
+          {/if}
         </span>
       </div>
       
