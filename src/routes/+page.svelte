@@ -78,11 +78,9 @@
       <iframe
         src="https://owncast.selftcode.com/embed/video"
         title="Owncast"
-        height="350px"
-        width="550px"
         referrerpolicy="origin"
         allowfullscreen
-        class="w-full aspect-video rounded-xl"
+        class="w-full w-full aspect-video rounded-xl"
       >
       </iframe>
       <div class="w-full md:w-1/2 flex justify-center">
