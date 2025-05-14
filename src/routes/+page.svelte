@@ -76,7 +76,7 @@
         </div>
       </div>
       <iframe
-        src="http://owncast.selftcode.com/embed/video"
+        src="https://owncast.selftcode.com/embed/video"
         title="Owncast"
         referrerpolicy="origin"
         allowfullscreen
